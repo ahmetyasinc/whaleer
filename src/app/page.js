@@ -18,8 +18,8 @@ export default function SurveyPage() {
     },
     {
       key: 'q2',
-      type: 'range',
-      text: '2. Aylık maaş aralığınızı giriniz:',
+      type: 'input',
+      text: '2. Yatırım için ayrılmış bütçeniz nedir? (TL cinsinden)',
     },
     {
       key: 'q3',
@@ -120,23 +120,66 @@ export default function SurveyPage() {
         'Kâr payı ile',
         'Paylaşmam',
       ],
+    },
+    {
+      key: 'q8',
+      type: 'radio',
+      text: '8. Başkalarının stratejilerini kullanmayı düşünür müsünüz?',
+      options: [
+        'Evet. düşünürüm',
+        'Geçmiş performansını test ettikten sonra düşünürüm',
+        'Hayır, düşünmem',
+      ],
+    },
+    {
+      key: 'q9',
+      type: 'radio',
+      text: '9. Bir stratejinin güvenilirliğini değerlendirmek isteseniz en çok neye dikkat edersiniz?',
+      options: [
+        'Kazanma oranı',
+        'Risk-getiri oranı (Sharpe vs.)',
+        'Kullanıcı yorumları',
+      ],
+    },
+    {
+      key: 'q10',
+      type: 'radio',
+      text: '10. Platformun erken sürümünü test etmek ister misiniz?',
+      options: ['Evet', 'Hayır'],
       subQuestions: [
         {
-          key: 'q8',
-          type: 'radio',
-          text: '8. Hangi platform aracılığı ile robot çalıştırdınız? ',
-          options: [
-            '3Commas',
-            'WunderTrading',
-            'Matrix',
-            'Diğer',
-          ],
+          key: 'q10_1',
+          type: 'input',
+          text: 'E-Mail:',
         },
-
-      ],
-      condition: (value) => value === '3Commas' || value === 'WunderTrading' || value === 'Matrix' || value === 'Matrix',
+        {
+          key: 'q10_2',
+          type: 'input',
+          text: 'Telefon:',
+        },
+      ],      
+      condition: (value) => value === 'Evet',
     },
-
+    {
+      key: 'q11',
+      type: 'textarea',
+      text: '11. Platformdan beklentiniz nedir? Hangi özellik sizi en çok heyecanlandırır? Önerileriniz varsa yazınız.',
+    },
+    {
+      key: 'q12',
+      type: 'radio',
+      text: '12. Aşağıdaki konularda en çok endişeniz olanlar hangileri? (En fazla 3 seçim yapabilirsiniz)',
+      options: [
+        'Stratejilerimin izinsiz kopyalanması',
+        'Botların doğru çalışmaması / zarara uğratması',
+        'Platforma bağladığım cüzdanımın güvenliği',
+        'Kimlik bilgilerimin 3. kişilerle paylaşılması',
+        'Paramın çekilememesi / kaybolması',
+        'Dolandırıcılık ihtimali (sahte strateji, sahte kullanıcı vb.)',
+        'Destek ekibine ulaşamama / sorun çözülmemesi',
+      ],
+      maxSelections: 3,
+    },
   ];
 
   const current = questions[currentQuestionIndex];
@@ -151,7 +194,7 @@ export default function SurveyPage() {
           {/* Ana Soru */}
           <div className="mb-16">
             <p className="text-base font-semibold mb-6">{current.text}</p>
-  
+
             {/* Select */}
             {current.type === 'select' && (
               <select
@@ -170,6 +213,18 @@ export default function SurveyPage() {
                 ))}
               </select>
             )}
+
+            {current.type === 'input' && (
+              <input
+                type="text"
+                name={current.key}
+                className="w-full p-2 bg-white text-black rounded"
+                placeholder="Yanıtınızı buraya yazabilirsiniz..."
+                value={answers[current.key] || ''}
+                onChange={(e) => handleChange(current.key, e.target.value)}
+              />
+            )}
+
 
             {/* Range (maaş) */}
             {current.type === 'range' && (
@@ -215,55 +270,84 @@ export default function SurveyPage() {
                   <span>{opt}</span>
                 </div>
               ))}
+
+            {/* Textarea */}
+            {current.type === 'textarea' && (
+              <textarea
+                name={current.key}
+                rows={6}
+                className="w-full p-2 bg-white text-black rounded"
+                placeholder="Yanıtınızı buraya yazabilirsiniz..."
+                value={answers[current.key] || ''}
+                onChange={(e) => handleChange(current.key, e.target.value)}
+              />
+            )}
           </div>
+
   
           {/* Şartlı alt sorular (aynı kartta) */}
           {showSubQuestions &&
-          current.subQuestions?.map((sub) => (
-            <div key={sub.key} className="mb-16">
-              <p className="text-base font-semibold mb-6">{sub.text}</p>
-          
-              {/* Checkbox tipi */}
-              {sub.type === 'checkbox' &&
-                sub.options.map((opt) => (
-                  <div key={opt} className="flex items-center gap-4 mb-3">
-                    <input
-                      type="checkbox"
-                      name={sub.key}
-                      className="w-4 h-4"
-                      checked={answers[sub.key]?.includes(opt) || false}
-                      onChange={(e) => {
-                        const currentAnswers = answers[sub.key] || [];
-                        if (e.target.checked) {
-                          handleChange(sub.key, [...currentAnswers, opt]);
-                        } else {
-                          handleChange(
-                            sub.key,
-                            currentAnswers.filter((item) => item !== opt)
-                          );
-                        }
-                      }}
-                    />
-                    <span>{opt}</span>
-                  </div>
-                ))}
+        current.subQuestions?.map((sub) => (
+          <div key={sub.key} className="mb-16">
+            <p className="text-base font-semibold mb-6">{sub.text}</p>
+        
+            {/* Checkbox tipi */}
+            {sub.type === 'checkbox' &&
+              sub.options.map((opt) => (
+                <div key={opt} className="flex items-center gap-4 mb-3">
+                  <input
+                    type="checkbox"
+                    name={sub.key}
+                    className="w-4 h-4"
+                    checked={answers[sub.key]?.includes(opt) || false}
+                    onChange={(e) => {
+                      const currentAnswers = answers[sub.key] || [];
+                      if (e.target.checked) {
+                        handleChange(sub.key, [...currentAnswers, opt]);
+                      } else {
+                        handleChange(
+                          sub.key,
+                          currentAnswers.filter((item) => item !== opt)
+                        );
+                      }
+                    }}
+                  />
+                  <span>{opt}</span>
+                </div>
+              ))}
 
-              {/* Radio tipi */}
-              {sub.type === 'radio' &&
-                sub.options.map((opt) => (
-                  <div key={opt} className="flex items-center gap-4 mb-3">
-                    <input
-                      type="radio"
-                      name={sub.key}
-                      className="w-4 h-4"
-                      checked={answers[sub.key] === opt}
-                      onChange={() => handleChange(sub.key, opt)}
-                    />
-                    <span>{opt}</span>
-                  </div>
-                ))}
-            </div>
-          ))}
+            {/* Radio tipi */}
+            {sub.type === 'radio' &&
+              sub.options.map((opt) => (
+                <div key={opt} className="flex items-center gap-4 mb-3">
+                  <input
+                    type="radio"
+                    name={sub.key}
+                    className="w-4 h-4"
+                    checked={answers[sub.key] === opt}
+                    onChange={() => handleChange(sub.key, opt)}
+                  />
+                  <span>{opt}</span>
+                </div>
+              ))}
+
+      {/* Input tipi (e-mail, telefon vb.) */}
+      {sub.type === 'input' && (
+        <input
+          type={
+            sub.text.toLowerCase().includes('mail') ? 'email'
+            : sub.text.toLowerCase().includes('telefon') ? 'tel'
+            : 'text'
+          }
+          placeholder={sub.text}
+          className="w-full p-2 bg-white text-black rounded"
+          value={answers[sub.key] || ''}
+          onChange={(e) => handleChange(sub.key, e.target.value)}
+        />
+      )}
+    </div>
+  ))}
+
 
         </div>
   
@@ -276,15 +360,28 @@ export default function SurveyPage() {
           >
             ◀ Geri
           </button>
-  
-          <button
-            onClick={nextQuestion}
-            className="bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-30"
-            disabled={currentQuestionIndex === questions.length - 1}
-          >
-            İleri ▶
-          </button>
+
+          {currentQuestionIndex === questions.length - 1 ? (
+            <button
+              onClick={() => {
+                console.log('Form tamamlandı:', answers);
+                alert('Teşekkürler! Cevaplarınız kaydedildi.');
+                // istersen backend'e gönderim veya yönlendirme ekleyebilirsin
+              }}
+              className="bg-green-600 px-4 py-2 text-white hover:bg-green-500"
+            >
+               Formu Tamamla
+            </button>
+          ) : (
+            <button
+              onClick={nextQuestion}
+              className="bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-30"
+            >
+              İleri ▶
+            </button>
+          )}
         </div>
+
       </div>
     </main>
   );

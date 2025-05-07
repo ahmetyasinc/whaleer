@@ -98,7 +98,7 @@ export default function SurveyPage() {
       key: 'q1',
       type: 'select',
       text: '1. Yaş aralığınızı seçiniz:',
-      options: ['-18','18-24', '25-34', '35-44', '45+'],
+      options: ['-18','18 - 24', '25 - 34', '35 - 44', '45+'],
     },
     {
       key: 'q2',

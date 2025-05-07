@@ -1,12 +1,87 @@
 'use client';
 
 import { useSurveyStore } from '@/store/surveyStore';
+import { useThemeStore } from '@/store/themeStore';
+import { useEffect, useState } from 'react';
+
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxTL1jzwwgtPkoEgE2ULwthGrDw0T03sBea8ZzmpN6Ut1WsOzfd-VkYYbxQ1FPnm1Dy/exec"; // kendi URL'inle değiştir
 
 export default function SurveyPage() {
   const { currentQuestionIndex, answers, setAnswer, nextQuestion, prevQuestion } = useSurveyStore();
+  const { isDarkMode, toggleTheme } = useThemeStore();
+  const [error, setError] = useState('');
+  const [isStarted, setIsStarted] = useState(false);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleChange = (key, value) => {
     setAnswer(key, value);
+    setError('');
+  };
+
+  const validateCurrentQuestion = () => {
+    const current = questions[currentQuestionIndex];
+    
+    // Skip validation for optional questions (11, 12, 13)
+    if (['q11', 'q12', 'q13'].includes(current.key)) {
+      return true;
+    }
+    
+    if (!answers[current.key]) {
+      setError('Lütfen bu soruyu yanıtlayınız.');
+      return false;
+    }
+
+    // For checkbox questions with maxSelections
+    if (current.type === 'checkbox' && current.maxSelections) {
+      const selectedCount = answers[current.key]?.length || 0;
+      if (selectedCount > current.maxSelections) {
+        setError(`En fazla ${current.maxSelections} seçim yapabilirsiniz.`);
+        return false;
+      }
+    }
+
+    // For questions with sub-questions
+    if (current.subQuestions && current.condition?.(answers[current.key])) {
+      for (const sub of current.subQuestions) {
+        if (!answers[sub.key]) {
+          setError('Lütfen tüm alt soruları yanıtlayınız.');
+          return false;
+        }
+
+        // Email validation for q10_1
+        if (sub.key === 'q10_1') {
+          const email = answers[sub.key];
+          if (!email.includes('@')) {
+            setError('Lütfen geçerli bir e-posta adresi giriniz.');
+            return false;
+          }
+        }
+
+        // Phone number validation for q10_2
+        if (sub.key === 'q10_2') {
+          const phone = answers[sub.key];
+          if (!/^\d+$/.test(phone)) {
+            setError('Lütfen sadece rakamlardan oluşan bir telefon numarası giriniz.');
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateCurrentQuestion()) {
+      nextQuestion();
+    }
   };
 
   const questions = [
@@ -14,17 +89,17 @@ export default function SurveyPage() {
       key: 'q1',
       type: 'select',
       text: '1. Yaş aralığınızı seçiniz:',
-      options: ['18-24', '25-34', '35-44', '45+'],
+      options: ['-18','18-24', '25-34', '35-44', '45+'],
     },
     {
       key: 'q2',
       type: 'input',
-      text: '2. Yatırım için ayrılmış bütçeniz nedir? (TL cinsinden)',
+      text: '2. Yatırım için ayırdığınız aylık bütçeniz nedir? (TL cinsinden)',
     },
     {
       key: 'q3',
       type: 'radio',
-      text: '3. Finansal piyasalarda (kripto, hisse, forex vb.) aktif misiniz?',
+      text: '3. Finansal piyasalara (kripto, hisse, forex vb.) ilginiz var mı?',
       options: ['Evet', 'Hayır'],
       subQuestions: [
         {
@@ -126,8 +201,8 @@ export default function SurveyPage() {
       type: 'radio',
       text: '8. Başkalarının stratejilerini kullanmayı düşünür müsünüz?',
       options: [
-        'Evet. düşünürüm',
-        'Geçmiş performansını test ettikten sonra düşünürüm',
+        'Evet, düşünürüm',
+        'Geçmiş performansını test ettikten sonra düşünebilirim',
         'Hayır, düşünmem',
       ],
     },
@@ -136,15 +211,19 @@ export default function SurveyPage() {
       type: 'radio',
       text: '9. Bir stratejinin güvenilirliğini değerlendirmek isteseniz en çok neye dikkat edersiniz?',
       options: [
-        'Kazanma oranı',
-        'Risk-getiri oranı (Sharpe vs.)',
-        'Kullanıcı yorumları',
+        'Kazandığı işlemlerin oranı',
+        'Risk ve kazanç dengesi',
+        'En fazla zarar ettiği miktar ve dönem',
+        'Toplam kazanç',
+        'Diğer kullanıcıların yorumları',
+        'Farklı piyasa koşullarında gösterdiği performans',
+        'Stratejinin nasıl çalıştığına dair şeffaflığı',
       ],
     },
     {
       key: 'q10',
       type: 'radio',
-      text: '10. Platformun erken sürümünü test etmek ister misiniz?',
+      text: '10. Platformumuzun erken sürüm testlerinde yer almak ister misiniz?',
       options: ['Evet', 'Hayır'],
       subQuestions: [
         {
@@ -163,12 +242,22 @@ export default function SurveyPage() {
     {
       key: 'q11',
       type: 'textarea',
-      text: '11. Platformdan beklentiniz nedir? Hangi özellik sizi en çok heyecanlandırır? Önerileriniz varsa yazınız.',
+      text: '11. Platformumuzdan beklentileriniz nelerdir?',
     },
     {
       key: 'q12',
-      type: 'radio',
-      text: '12. Aşağıdaki konularda en çok endişeniz olanlar hangileri? (En fazla 3 seçim yapabilirsiniz)',
+      type: 'textarea',
+      text: '12. Hangi özellik sizi en çok heyecanlandırır?',
+    },
+    {
+      key: 'q13',
+      type: 'textarea',
+      text: '13. Önerileriniz varsa yazınız.',
+    },
+    {
+      key: 'q14',
+      type: 'checkbox',
+      text: '14. Aşağıdaki konularda en çok endişeniz olanlar hangileri?',
       options: [
         'Stratejilerimin izinsiz kopyalanması',
         'Botların doğru çalışmaması / zarara uğratması',
@@ -186,202 +275,347 @@ export default function SurveyPage() {
   const showSubQuestions = current.condition?.(answers[current.key]);
 
   return (
-    <main className="min-h-screen w-full hard-gradient text-black flex justify-center items-center">
-      <div className="w-full max-w-3xl min-h-[90vh] flex flex-col justify-between bg-[hsla(0,0%,99%,0.8)] rounded-4xl shadow-xl p-8">
-        <div className="overflow-y-auto">
-          <h1 className="text-3xl mb-16 text-center">Anket Formu</h1>
-  
-          {/* Ana Soru */}
-          <div className="mb-16">
-            <p className="text-base font-semibold mb-6">{current.text}</p>
+    <main className={`min-h-screen w-full transition-colors duration-300 ${
+      isDarkMode ? 'hard-gradient' : 'light-gradient'
+    } flex justify-center items-center p-4`}>
+      <div className={`w-full max-w-3xl h-[90vh] flex flex-col backdrop-blur-lg rounded-3xl shadow-2xl p-6 md:p-8 relative ${
+        isDarkMode ? 'bg-black/90' : 'bg-white/90'
+      }`}>
+        {/* Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 backdrop-blur-sm ${
+            isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'
+          }`}
+          aria-label="Toggle theme"
+        >
+          {isDarkMode ? (
+            <svg className="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
 
-            {/* Select */}
-            {current.type === 'select' && (
-              <select
-                name={current.key}
-                className="w-full p-2 bg-white text-black rounded"
-                value={answers[current.key] || ''}
-                onChange={(e) => handleChange(current.key, e.target.value)}
+        <h1 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+          Whaleer Kullanıcı Anketi
+        </h1>
+
+        {!isStarted ? (
+          // Introduction Page
+          <div className="flex-1 flex flex-col items-center overflow-y-auto">
+            <div className="w-full max-w-2xl px-4 py-6 space-y-6">
+              <p className={`text-lg md:text-xl leading-relaxed text-justify ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                Merhaba! 👋
+              </p>
+              <p className={`text-lg md:text-xl leading-relaxed text-justify ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                Whaleer olarak, algoritmik alım-satım dünyasında sadece strateji geliştirmekle kalmayıp, onu test edebileceğin, başkalarıyla paylaşabileceğin ve otomatik şekilde çalıştırabileceğin bir alan oluşturuyoruz.
+              </p>
+              <p className={`text-lg md:text-xl leading-relaxed text-justify ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                Bu kısa anketi meraklı ve yetenekli kullanıcılarımızı daha iyi anlayabilmek için hazırladık. Yanıtların, platformumuzu daha güvenli, sezgisel ve verimli hale getirmemizde bize ışık tutacak.
+              </p>
+              <p className={`text-lg md:text-xl leading-relaxed text-justify ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              Vakit ayırdığın için şimdiden teşekkür ederiz. Hazırsan başlayalım! ✨
+              </p>
+            </div>
+            <div className="w-full max-w-2xl px-4 py-4">
+              <button
+                onClick={() => setIsStarted(true)}
+                className="w-full px-6 md:px-8 py-3 md:py-4 bg-blue-600 text-white text-lg md:text-xl rounded-xl hover:bg-blue-700 transition-all duration-300 transform hover:scale-105"
               >
-                <option value="" disabled>
-                  Yaş aralığınızı seçin
-                </option>
-                {current.options.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {current.type === 'input' && (
-              <input
-                type="text"
-                name={current.key}
-                className="w-full p-2 bg-white text-black rounded"
-                placeholder="Yanıtınızı buraya yazabilirsiniz..."
-                value={answers[current.key] || ''}
-                onChange={(e) => handleChange(current.key, e.target.value)}
-              />
-            )}
-
-
-            {/* Range (maaş) */}
-            {current.type === 'range' && (
-              <div className="flex flex-col sm:flex-row gap-4">
-                <input
-                  type="number"
-                  placeholder="Alt sınır"
-                  className="w-full sm:w-1/2 p-2 bg-white text-black rounded"
-                  value={answers[current.key]?.min || ''}
-                  onChange={(e) =>
-                    handleChange(current.key, {
-                      ...(answers[current.key] || {}),
-                      min: e.target.value,
-                    })
-                  }
-                />
-                <input
-                  type="number"
-                  placeholder="Üst sınır"
-                  className="w-full sm:w-1/2 p-2 bg-white text-black rounded"
-                  value={answers[current.key]?.max || ''}
-                  onChange={(e) =>
-                    handleChange(current.key, {
-                      ...(answers[current.key] || {}),
-                      max: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            )}
-
-            {/* Radio */}
-            {current.type === 'radio' &&
-              current.options.map((opt) => (
-                <div key={opt} className="flex items-center gap-4 mb-3">
-                  <input
-                    type="radio"
-                    name={current.key}
-                    className="w-4 h-4"
-                    checked={answers[current.key] === opt}
-                    onChange={() => handleChange(current.key, opt)}
-                  />
-                  <span>{opt}</span>
-                </div>
-              ))}
-
-            {/* Textarea */}
-            {current.type === 'textarea' && (
-              <textarea
-                name={current.key}
-                rows={6}
-                className="w-full p-2 bg-white text-black rounded"
-                placeholder="Yanıtınızı buraya yazabilirsiniz..."
-                value={answers[current.key] || ''}
-                onChange={(e) => handleChange(current.key, e.target.value)}
-              />
-            )}
+                Ankete Başla
+              </button>
+            </div>
           </div>
+        ) : (
+          // Questions Section
+          <>
+            <div className="flex-1 overflow-y-auto pr-2">
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
 
-  
-          {/* Şartlı alt sorular (aynı kartta) */}
-          {showSubQuestions &&
-        current.subQuestions?.map((sub) => (
-          <div key={sub.key} className="mb-16">
-            <p className="text-base font-semibold mb-6">{sub.text}</p>
-        
-            {/* Checkbox tipi */}
-            {sub.type === 'checkbox' &&
-              sub.options.map((opt) => (
-                <div key={opt} className="flex items-center gap-4 mb-3">
+              {/* Ana Soru */}
+              <div className="mb-8 space-y-6">
+                <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{current.text}</p>
+
+                {/* Select */}
+                {current.type === 'select' && (
+                  <select
+                    name={current.key}
+                    className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                        : 'bg-white text-gray-900 border-gray-200'
+                    }`}
+                    value={answers[current.key] || ''}
+                    onChange={(e) => handleChange(current.key, e.target.value)}
+                  >
+                    <option value="" disabled>Yaş aralığınızı seçin</option>
+                    {current.options.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Input */}
+                {current.type === 'input' && (
                   <input
-                    type="checkbox"
-                    name={sub.key}
-                    className="w-4 h-4"
-                    checked={answers[sub.key]?.includes(opt) || false}
+                    type={current.key === 'q2' ? 'number' : 'text'}
+                    name={current.key}
+                    min={current.key === 'q2' ? '0' : undefined}
+                    step={current.key === 'q2' ? '1' : undefined}
+                    className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                        : 'bg-white text-gray-900 border-gray-200'
+                    }`}
+                    placeholder={current.key === 'q2' ? "Sadece sayı giriniz..." : "Yanıtınızı buraya yazabilirsiniz..."}
+                    value={answers[current.key] || ''}
                     onChange={(e) => {
-                      const currentAnswers = answers[sub.key] || [];
-                      if (e.target.checked) {
-                        handleChange(sub.key, [...currentAnswers, opt]);
+                      if (current.key === 'q2') {
+                        const value = e.target.value;
+                        if (value === '' || /^\d+$/.test(value)) {
+                          handleChange(current.key, value);
+                        }
                       } else {
-                        handleChange(
-                          sub.key,
-                          currentAnswers.filter((item) => item !== opt)
-                        );
+                        handleChange(current.key, e.target.value);
                       }
                     }}
                   />
-                  <span>{opt}</span>
-                </div>
-              ))}
+                )}
 
-            {/* Radio tipi */}
-            {sub.type === 'radio' &&
-              sub.options.map((opt) => (
-                <div key={opt} className="flex items-center gap-4 mb-3">
-                  <input
-                    type="radio"
-                    name={sub.key}
-                    className="w-4 h-4"
-                    checked={answers[sub.key] === opt}
-                    onChange={() => handleChange(sub.key, opt)}
+                {/* Radio */}
+                {current.type === 'radio' && (
+                  <div className="space-y-3">
+                    {current.options.map((opt) => (
+                      <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                          : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                      }`}>
+                        <input
+                          type="radio"
+                          name={current.key}
+                          className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                          checked={answers[current.key] === opt}
+                          onChange={() => handleChange(current.key, opt)}
+                        />
+                        <span className="ml-3">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Checkbox */}
+                {current.type === 'checkbox' && (
+                  <div className="space-y-3">
+                    {current.options.map((opt) => (
+                      <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                          : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          name={current.key}
+                          className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                          checked={answers[current.key]?.includes(opt) || false}
+                          onChange={(e) => {
+                            const currentAnswers = answers[current.key] || [];
+                            if (e.target.checked) {
+                              if (current.maxSelections && currentAnswers.length >= current.maxSelections) {
+                                setError(`En fazla ${current.maxSelections} seçim yapabilirsiniz.`);
+                                return;
+                              }
+                              handleChange(current.key, [...currentAnswers, opt]);
+                            } else {
+                              handleChange(
+                                current.key,
+                                currentAnswers.filter((item) => item !== opt)
+                              );
+                            }
+                          }}
+                        />
+                        <span className="ml-3">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Textarea */}
+                {current.type === 'textarea' && (
+                  <textarea
+                    name={current.key}
+                    rows={6}
+                    className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                        : 'bg-white text-gray-900 border-gray-200'
+                    }`}
+                    placeholder="Yanıtınızı buraya yazabilirsiniz..."
+                    value={answers[current.key] || ''}
+                    onChange={(e) => handleChange(current.key, e.target.value)}
                   />
-                  <span>{opt}</span>
+                )}
+              </div>
+
+              {/* Alt Sorular */}
+              {showSubQuestions && current.subQuestions?.map((sub) => (
+                <div key={sub.key} className="mb-8 space-y-6">
+                  <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{sub.text}</p>
+                  
+                  {/* Checkbox */}
+                  {sub.type === 'checkbox' && (
+                    <div className="space-y-3">
+                      {sub.options.map((opt) => (
+                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            name={sub.key}
+                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                            checked={answers[sub.key]?.includes(opt) || false}
+                            onChange={(e) => {
+                              const currentAnswers = answers[sub.key] || [];
+                              if (e.target.checked) {
+                                if (sub.maxSelections && currentAnswers.length >= sub.maxSelections) {
+                                  setError(`En fazla ${sub.maxSelections} seçim yapabilirsiniz.`);
+                                  return;
+                                }
+                                handleChange(sub.key, [...currentAnswers, opt]);
+                              } else {
+                                handleChange(
+                                  sub.key,
+                                  currentAnswers.filter((item) => item !== opt)
+                                );
+                              }
+                            }}
+                          />
+                          <span className="ml-3">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Radio */}
+                  {sub.type === 'radio' && (
+                    <div className="space-y-3">
+                      {sub.options.map((opt) => (
+                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                        }`}>
+                          <input
+                            type="radio"
+                            name={sub.key}
+                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                            checked={answers[sub.key] === opt}
+                            onChange={() => handleChange(sub.key, opt)}
+                          />
+                          <span className="ml-3">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input (email, phone) */}
+                  {sub.type === 'input' && (
+                    <input
+                      type={
+                        sub.text.toLowerCase().includes('mail') ? 'email'
+                        : sub.text.toLowerCase().includes('telefon') ? 'tel'
+                        : 'text'
+                      }
+                      placeholder={sub.text}
+                      className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                          : 'bg-white text-gray-900 border-gray-200'
+                      }`}
+                      value={answers[sub.key] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (sub.key === 'q10_2') {
+                          if (value === '' || /^\d+$/.test(value)) {
+                            handleChange(sub.key, value);
+                          }
+                        } else {
+                          handleChange(sub.key, value);
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               ))}
+            </div>
+      
+            {/* Navigation Buttons */}
+            <div className={`flex justify-between mt-6 pt-6 border-t ${
+              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              <button
+                onClick={prevQuestion}
+                className={`px-6 py-3 rounded-xl transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                } disabled:opacity-50`}
+                disabled={currentQuestionIndex === 0}
+              >
+                ◀ Geri
+              </button>
 
-      {/* Input tipi (e-mail, telefon vb.) */}
-      {sub.type === 'input' && (
-        <input
-          type={
-            sub.text.toLowerCase().includes('mail') ? 'email'
-            : sub.text.toLowerCase().includes('telefon') ? 'tel'
-            : 'text'
-          }
-          placeholder={sub.text}
-          className="w-full p-2 bg-white text-black rounded"
-          value={answers[sub.key] || ''}
-          onChange={(e) => handleChange(sub.key, e.target.value)}
-        />
-      )}
-    </div>
-  ))}
-
-
-        </div>
-  
-        {/* Geri/İleri Butonları */}
-        <div className="flex justify-between mt-auto pt-4 border-t border-gray-700">
-          <button
-            onClick={prevQuestion}
-            className="bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 disabled:opacity-30"
-            disabled={currentQuestionIndex === 0}
-          >
-            ◀ Geri
-          </button>
-
-          {currentQuestionIndex === questions.length - 1 ? (
-            <button
-              onClick={() => {
-                console.log('Form tamamlandı:', answers);
-                alert('Teşekkürler! Cevaplarınız kaydedildi.');
-                // istersen backend'e gönderim veya yönlendirme ekleyebilirsin
-              }}
-              className="bg-green-600 px-4 py-2 text-white hover:bg-green-500"
-            >
-               Formu Tamamla
-            </button>
-          ) : (
-            <button
-              onClick={nextQuestion}
-              className="bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-30"
-            >
-              İleri ▶
-            </button>
-          )}
-        </div>
-
+              {currentQuestionIndex === questions.length - 1 ? (
+                <button
+                  onClick={async () => {
+                    if (validateCurrentQuestion()) {
+                      try {
+                        const res = await fetch(WEBHOOK_URL, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(answers),
+                        });
+                      
+                        if (res.ok) {
+                          alert('Teşekkürler! Cevaplarınız başarıyla kaydedildi.');
+                          // İstersen kullanıcıyı yönlendirebilirsin
+                        } else {
+                          alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                        }
+                      } catch (err) {
+                        console.error('Gönderim hatası:', err);
+                        alert('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+                      }
+                    }
+                  }}
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300"
+                >
+                  Formu Tamamla
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300"
+                >
+                  İleri ▶
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

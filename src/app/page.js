@@ -11,6 +11,9 @@ export default function SurveyPage() {
   const { isDarkMode, toggleTheme } = useThemeStore();
   const [error, setError] = useState('');
   const [isStarted, setIsStarted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState({ show: false, type: '', message: '' });
+  const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -84,6 +87,12 @@ export default function SurveyPage() {
     }
   };
 
+  // Toast gösterme fonksiyonu
+  const showToast = (type, message) => {
+    setToast({ show: true, type, message });
+    setTimeout(() => setToast({ show: false, type: '', message: '' }), 3000);
+  };
+
   const questions = [
     {
       key: 'q1',
@@ -145,7 +154,7 @@ export default function SurveyPage() {
           type: 'checkbox',
           text: '4.2. Stratejilerinizi nasıl test ediyorsunuz?',
           options: [
-            'TradingView geri testler',
+            'TradingView aracılığıyla',
             'Kod yazarak kendim',
             'Hazır platformlar (örnek: Trality, 3Commas)',
             'Test etmiyorum',
@@ -166,8 +175,8 @@ export default function SurveyPage() {
           text: '5.1. Hangi platform aracılığı ile robot çalıştırdınız? ',
           options: [
             '3Commas',
-            'WunderTrading',
             'Matrix',
+            'Kendim',
             'Diğer',
           ],
         },
@@ -202,7 +211,7 @@ export default function SurveyPage() {
       text: '8. Başkalarının stratejilerini kullanmayı düşünür müsünüz?',
       options: [
         'Evet, düşünürüm',
-        'Geçmiş performansını test ettikten sonra düşünebilirim',
+        'Geçmiş performansını yeterince test ettikten sonra düşünebilirim',
         'Hayır, düşünmem',
       ],
     },
@@ -257,7 +266,7 @@ export default function SurveyPage() {
     {
       key: 'q14',
       type: 'checkbox',
-      text: '14. Aşağıdaki konularda en çok endişeniz olanlar hangileri?',
+      text: '14. Aşağıdakilerden en çok endişeniz olanlar hangileri?',
       options: [
         'Stratejilerimin izinsiz kopyalanması',
         'Botların doğru çalışmaması / zarara uğratması',
@@ -278,6 +287,47 @@ export default function SurveyPage() {
     <main className={`min-h-screen w-full transition-colors duration-300 ${
       isDarkMode ? 'hard-gradient' : 'light-gradient'
     } flex justify-center items-center p-4`}>
+      {/* Toast Notifications */}
+      {(isSubmitting || toast.show) && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+          <div className={`flex items-center space-x-3 px-6 py-3 rounded-xl shadow-lg backdrop-blur-lg transition-all duration-300 ${
+            isSubmitting 
+              ? isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+              : toast.type === 'success'
+                ? isDarkMode ? 'bg-green-800/90' : 'bg-green-100/90'
+                : isDarkMode ? 'bg-red-800/90' : 'bg-red-100/90'
+          }`}>
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                  Cevaplarınız kaydediliyor...
+                </span>
+              </>
+            ) : (
+              <>
+                {toast.type === 'success' ? (
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+                <span className={`text-sm font-medium ${
+                  isDarkMode 
+                    ? toast.type === 'success' ? 'text-green-200' : 'text-red-200'
+                    : toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.message}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className={`w-full max-w-3xl h-[90vh] flex flex-col backdrop-blur-lg rounded-3xl shadow-2xl p-6 md:p-8 relative ${
         isDarkMode ? 'bg-black/90' : 'bg-white/90'
       }`}>
@@ -328,6 +378,26 @@ export default function SurveyPage() {
               >
                 Ankete Başla
               </button>
+            </div>
+          </div>
+        ) : isCompleted ? (
+          // Thank You Page
+          <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 px-4">
+            <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="space-y-4">
+              <h2 className={`text-2xl md:text-3xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                Teşekkürler!
+              </h2>
+              <p className={`text-lg md:text-xl leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Whaleer olarak yakında karşınızda olacağız. Görüşleriniz bizim için çok değerli.
+              </p>
+              <p className={`text-base md:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                ✨ Platformumuz hazır olduğunda sizi haberdar edeceğiz. ✨
+              </p>
             </div>
           </div>
         ) : (
@@ -580,8 +650,9 @@ export default function SurveyPage() {
                 <button
                   onClick={async () => {
                     if (validateCurrentQuestion()) {
+                      setIsSubmitting(true);
                       try {
-                        const res = await fetch(WEBHOOK_URL, {
+                        const res = await fetch('/api/save', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -590,20 +661,25 @@ export default function SurveyPage() {
                         });
                       
                         if (res.ok) {
-                          alert('Teşekkürler! Cevaplarınız başarıyla kaydedildi.');
-                          // İstersen kullanıcıyı yönlendirebilirsin
+                          showToast('success', 'Teşekkürler! Cevaplarınız başarıyla kaydedildi.');
+                          setIsCompleted(true);
                         } else {
-                          alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                          showToast('error', 'Kaydetme başarısız oldu. Lütfen tekrar deneyin.');
                         }
                       } catch (err) {
                         console.error('Gönderim hatası:', err);
-                        alert('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+                        showToast('error', 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+                      } finally {
+                        setIsSubmitting(false);
                       }
                     }
                   }}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300"
+                  disabled={isSubmitting}
+                  className={`px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Formu Tamamla
+                  {isSubmitting ? 'Gönderiliyor...' : 'Formu Tamamla'}
                 </button>
               ) : (
                 <button

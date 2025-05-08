@@ -12,6 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://whaleer.com"),  // 🌐 Mutlaka mutlak URL olmalı
   title: "Whaleer",
   description: "Whaleer platformu",
   icons: {
@@ -24,7 +25,7 @@ export const metadata = {
     siteName: "Whaleer",
     images: [
       {
-        url: "/og-image.jpg", // Bu görseli public klasörüne eklemeniz gerekiyor
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Whaleer Platform",
@@ -37,7 +38,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Whaleer",
     description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu",
-    images: ["/og-image.jpg"], // Aynı görseli Twitter için de kullanıyoruz
+    images: ["/og-image.jpg"],
   },
 };
 

@@ -35,8 +35,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Whaleer Kullanıcı Anketi",
-    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu için kullanıcı anketi",
+    title: "Whaleer",
+    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu",
     images: ["/og-image.png"], // Aynı görseli Twitter için de kullanıyoruz
   },
 };

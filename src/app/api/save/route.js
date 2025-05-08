@@ -1,7 +1,7 @@
 export async function POST(request) {
     const body = await request.json();
   
-    const webhookUrl = "https://script.google.com/macros/s/AKfycbxTL1jzwwgtPkoEgE2ULwthGrDw0T03sBea8ZzmpN6Ut1WsOzfd-VkYYbxQ1FPnm1Dy/exec"; // kendi webhook’unuz
+    const webhookUrl = "https://script.google.com/macros/s/AKfycbwTIEbiY5F1UB-9kFiCKma0VmLMdthoG_Ct4GwXF2ml2OH_K6zSFWsKZECiH-KuNNgqNQ/exec"; // kendi webhook’unuz
   
     try {
       const res = await fetch(webhookUrl, {

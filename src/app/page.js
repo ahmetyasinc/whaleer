@@ -320,12 +320,22 @@ export default function SurveyPage() {
     {
       key: 'q12',
       type: 'textarea',
-      text: 'Hangi özellik sizi en çok heyecanlandırır?',
+      text: 'Önerileriniz varsa yazınız.',
     },
     {
       key: 'q13',
-      type: 'textarea',
-      text: 'Önerileriniz varsa yazınız.',
+      type: 'radio',
+      text: 'Hangi özellik sizi en çok heyecanlandırır?',
+      options: [
+        'Ücretsiz robot oluşturabilme',
+        'Hazır robotları satın alabilme',
+        'Stratejimi başkalarına satabilme',
+        'Canlı veriyle gerçek zamanlı test yapabilme',
+        'Başarılı stratejilerden otomatik kopyalama (copy-trade)',
+        'Strateji sahipliğimi blokzincirle koruma altına alabilme',
+        'Topluluk içi sıralama ve yarışmalara katılabilme',
+        'Mobil uygulama üzerinden kolay erişim',
+      ],
     },
     {
       key: 'q14',

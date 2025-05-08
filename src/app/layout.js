@@ -17,6 +17,28 @@ export const metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  openGraph: {
+    title: "Whaleer Kullanıcı Anketi",
+    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu için kullanıcı anketi",
+    url: "https://whaleer.com",
+    siteName: "Whaleer",
+    images: [
+      {
+        url: "/og-image.png", // Bu görseli public klasörüne eklemeniz gerekiyor
+        width: 1200,
+        height: 630,
+        alt: "Whaleer Platform",
+      },
+    ],
+    locale: "tr_TR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Whaleer Kullanıcı Anketi",
+    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu için kullanıcı anketi",
+    images: ["/og-image.png"], // Aynı görseli Twitter için de kullanıyoruz
+  },
 };
 
 export default function RootLayout({ children }) {

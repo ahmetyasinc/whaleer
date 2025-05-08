@@ -4,8 +4,6 @@ import { useSurveyStore } from '@/store/surveyStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useEffect, useState } from 'react';
 
-const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxTL1jzwwgtPkoEgE2ULwthGrDw0T03sBea8ZzmpN6Ut1WsOzfd-VkYYbxQ1FPnm1Dy/exec"; // kendi URL'inle değiştir
-
 export default function SurveyPage() {
   const { currentQuestionIndex, answers, setAnswer, nextQuestion, prevQuestion } = useSurveyStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
@@ -69,7 +67,7 @@ export default function SurveyPage() {
 
         // Phone number validation for q10_2
         if (sub.key === 'q10_2') {
-          const phone = answers[sub.key];
+          const phone = answers[sub.key]?.replace('+', '') || '';
           if (!/^\d+$/.test(phone)) {
             setError('Lütfen sadece rakamlardan oluşan bir telefon numarası giriniz.');
             return false;
@@ -81,9 +79,29 @@ export default function SurveyPage() {
     return true;
   };
 
-  const handleNext = () => {
+  const handleCustomNext = () => {
     if (validateCurrentQuestion()) {
-      nextQuestion();
+      // If current question is q3 and answer is "Hayır", skip to q6
+      if (current.key === 'q3' && answers[current.key] === 'Hayır') {
+        // Skip to q6 by calling nextQuestion multiple times
+        for (let i = currentQuestionIndex; i < 5; i++) {
+          nextQuestion();
+        }
+      } else {
+        nextQuestion();
+      }
+    }
+  };
+
+  const handleCustomPrev = () => {
+    // If current question is q6 and q3 was answered as "Hayır", go back to q3
+    if (current.key === 'q6' && answers['q3'] === 'Hayır') {
+      // Go back to q3 by calling prevQuestion multiple times
+      for (let i = currentQuestionIndex; i > 2; i--) {
+        prevQuestion();
+      }
+    } else {
+      prevQuestion();
     }
   };
 
@@ -197,7 +215,7 @@ export default function SurveyPage() {
     {
       key: 'q7',
       type: 'radio',
-      text: '7. Kendi stratejinizi başkalarıyla paylaşır mısınız?',
+      text: '7. Kendi al-sat stratejinizi başkalarıyla paylaşır mısınız?',
       options: [
         'Ücretli',
         'Ücretsiz',
@@ -242,8 +260,36 @@ export default function SurveyPage() {
         },
         {
           key: 'q10_2',
-          type: 'input',
+          type: 'phone',
           text: 'Telefon:',
+          countryCodes: [
+            { code: '+90', country: 'Türkiye' },
+            { code: '+1', country: 'USA/Canada' },
+            { code: '+44', country: 'UK' },
+            { code: '+49', country: 'Germany' },
+            { code: '+33', country: 'France' },
+            { code: '+39', country: 'Italy' },
+            { code: '+34', country: 'Spain' },
+            { code: '+31', country: 'Netherlands' },
+            { code: '+32', country: 'Belgium' },
+            { code: '+41', country: 'Switzerland' },
+            { code: '+43', country: 'Austria' },
+            { code: '+45', country: 'Denmark' },
+            { code: '+46', country: 'Sweden' },
+            { code: '+47', country: 'Norway' },
+            { code: '+48', country: 'Poland' },
+            { code: '+7', country: 'Russia' },
+            { code: '+86', country: 'China' },
+            { code: '+81', country: 'Japan' },
+            { code: '+82', country: 'South Korea' },
+            { code: '+91', country: 'India' },
+            { code: '+55', country: 'Brazil' },
+            { code: '+54', country: 'Argentina' },
+            { code: '+52', country: 'Mexico' },
+            { code: '+27', country: 'South Africa' },
+            { code: '+61', country: 'Australia' },
+            { code: '+64', country: 'New Zealand' },
+          ],
         },
       ],      
       condition: (value) => value === 'Evet',
@@ -602,11 +648,7 @@ export default function SurveyPage() {
                   {/* Input (email, phone) */}
                   {sub.type === 'input' && (
                     <input
-                      type={
-                        sub.text.toLowerCase().includes('mail') ? 'email'
-                        : sub.text.toLowerCase().includes('telefon') ? 'tel'
-                        : 'text'
-                      }
+                      type="email"
                       placeholder={sub.text}
                       className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
                         isDarkMode 
@@ -614,17 +656,52 @@ export default function SurveyPage() {
                           : 'bg-white text-gray-900 border-gray-200'
                       }`}
                       value={answers[sub.key] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (sub.key === 'q10_2') {
-                          if (value === '' || /^\d+$/.test(value)) {
-                            handleChange(sub.key, value);
-                          }
-                        } else {
-                          handleChange(sub.key, value);
-                        }
-                      }}
+                      onChange={(e) => handleChange(sub.key, e.target.value)}
                     />
+                  )}
+
+                  {/* Phone Input with Country Code */}
+                  {sub.type === 'phone' && (
+                    <div className="flex flex-row gap-2">
+                      <select
+                        className={`w-24 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-base ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200'
+                        }`}
+                        value={answers[`${sub.key}_countryCode`] || '+90'}
+                        onChange={(e) => {
+                          const countryCode = e.target.value;
+                          const phoneNumber = answers[`${sub.key}_number`] || '';
+                          handleChange(`${sub.key}_countryCode`, countryCode);
+                          handleChange(sub.key, `${countryCode}${phoneNumber}`);
+                        }}
+                      >
+                        {sub.countryCodes.map(({ code }) => (
+                          <option key={code} value={code} className="text-base">
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        placeholder="Telefon numarası"
+                        className={`flex-1 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-base ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200'
+                        }`}
+                        value={answers[`${sub.key}_number`] || ''}
+                        onChange={(e) => {
+                          const phoneNumber = e.target.value;
+                          if (phoneNumber === '' || /^\d+$/.test(phoneNumber)) {
+                            const countryCode = (answers[`${sub.key}_countryCode`] || '+90').replace('+', '');
+                            handleChange(`${sub.key}_number`, phoneNumber);
+                            handleChange(sub.key, `${countryCode}${phoneNumber}`);
+                          }
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               ))}
@@ -635,7 +712,7 @@ export default function SurveyPage() {
               isDarkMode ? 'border-gray-700' : 'border-gray-200'
             }`}>
               <button
-                onClick={prevQuestion}
+                onClick={handleCustomPrev}
                 className={`px-6 py-3 rounded-xl transition-all duration-300 ${
                   isDarkMode 
                     ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
@@ -683,7 +760,7 @@ export default function SurveyPage() {
                 </button>
               ) : (
                 <button
-                  onClick={handleNext}
+                  onClick={handleCustomNext}
                   className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300"
                 >
                   İleri ▶

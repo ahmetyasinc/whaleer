@@ -30,7 +30,7 @@ export default function SurveyPage() {
     const current = questions[currentQuestionIndex];
     
     // Skip validation for optional questions (11, 12, 13, q1_1)
-    if (['q11', 'q12', 'q13', 'q1_1', 'q2_2'].includes(current.key)) {
+    if (['q11', 'q12', 'q1_1', 'q2_2'].includes(current.key)) {
       return true;
     }
     

@@ -29,8 +29,8 @@ export default function SurveyPage() {
   const validateCurrentQuestion = () => {
     const current = questions[currentQuestionIndex];
     
-    // Skip validation for optional questions (11, 12, 13)
-    if (['q11', 'q12', 'q13'].includes(current.key)) {
+    // Skip validation for optional questions (11, 12, 13, q1_1)
+    if (['q11', 'q12', 'q13', 'q1_1', 'q2_2'].includes(current.key)) {
       return true;
     }
     
@@ -51,6 +51,9 @@ export default function SurveyPage() {
     // For questions with sub-questions
     if (current.subQuestions && current.condition?.(answers[current.key])) {
       for (const sub of current.subQuestions) {
+        // Skip validation for optional sub-questions
+        if (sub.key === 'q1_1') continue;
+
         if (!answers[sub.key]) {
           setError('Lütfen tüm alt soruları yanıtlayınız.');
           return false;
@@ -67,8 +70,15 @@ export default function SurveyPage() {
 
         // Phone number validation for q10_2
         if (sub.key === 'q10_2') {
-          const phone = answers[sub.key]?.replace('+', '') || '';
-          if (!/^\d+$/.test(phone)) {
+          const phoneNumber = answers[`${sub.key}_number`] || '';
+          const countryCode = answers[`${sub.key}_countryCode`] || '+90';
+          
+          if (!phoneNumber) {
+            setError('Lütfen telefon numaranızı giriniz.');
+            return false;
+          }
+          
+          if (!/^\d+$/.test(phoneNumber)) {
             setError('Lütfen sadece rakamlardan oluşan bir telefon numarası giriniz.');
             return false;
           }
@@ -114,25 +124,33 @@ export default function SurveyPage() {
   const questions = [
     {
       key: 'q1',
-      type: 'select',
-      text: '1. Yaş aralığınızı seçiniz:',
+      type: 'radio',
+      text: 'Yaş aralığınızı seçiniz:',
       options: ['-18','18 - 24', '25 - 34', '35 - 44', '45+'],
+      subQuestions: [
+        {
+          key: 'q1_1',
+          type: 'input',
+          text: 'İsminiz (opsiyonel):',
+        }
+      ],
+      condition: () => true, // Her zaman göster
     },
     {
       key: 'q2',
       type: 'input',
-      text: '2. Yatırım için ayırdığınız aylık bütçeniz nedir? (TL cinsinden)',
+      text: 'Yatırım için ayırdığınız aylık bütçeniz nedir? (TL cinsinden)',
     },
     {
       key: 'q3',
       type: 'radio',
-      text: '3. Finansal piyasalara (kripto, hisse, forex vb.) ilginiz var mı?',
+      text: 'Finansal piyasalara (kripto, hisse, forex vb.) ilginiz var mı?',
       options: ['Evet', 'Hayır'],
       subQuestions: [
         {
           key: 'q3_1',
           type: 'checkbox',
-          text: '3.1. Hangi yatırım araçlarını kullanıyorsunuz?',
+          text: 'Hangi yatırım araçlarına ilginiz var?',
           options: [
             'Kripto para borsaları',
             'Hisse senetleri',
@@ -144,7 +162,7 @@ export default function SurveyPage() {
         {
           key: 'q3_2',
           type: 'radio',
-          text: '3.2. Ortalama aylık işlem sıklığınız?',
+          text: 'Varsa ortalama aylık işlem sıklığınız?',
           options: ['0-20', '21-100', '100+'],
         },
       ],
@@ -153,13 +171,13 @@ export default function SurveyPage() {
     {
       key: 'q4',
       type: 'radio',
-      text: '4. Alım satım stratejileri geliştiriyor musunuz veya geliştirmek ister misiniz?',
+      text: 'Alım satım stratejileri geliştiriyor musunuz veya geliştirmek ister misiniz?',
       options: ['Evet', 'Hayır', 'Kısmen'],
       subQuestions: [
         {
           key: 'q4_1',
           type: 'checkbox',
-          text: '4.1. Hangi programlama dillerinde strateji yazma deneyiminiz var?',
+          text: 'Hangi programlama dillerinde strateji yazma deneyiminiz var?',
           options: [
             'Python',
             'C, C++, C#, Java',
@@ -170,7 +188,7 @@ export default function SurveyPage() {
         {
           key: 'q4_2',
           type: 'checkbox',
-          text: '4.2. Stratejilerinizi nasıl test ediyorsunuz?',
+          text: 'Stratejilerinizi nasıl test ediyorsunuz?',
           options: [
             'TradingView aracılığıyla',
             'Kod yazarak kendim',
@@ -184,13 +202,13 @@ export default function SurveyPage() {
     {
       key: 'q5',
       type: 'radio',
-      text: '5. Daha önce otomatik alım satım robotu kullandınız mı?',
-      options: ['Evet', 'Hayır'],
+      text: 'Daha önce otomatik alım satım robotu kullandınız mı?',
+      options: ['Evet', 'Hayır ama kullanmak isterim', 'Hayır'],
       subQuestions: [
         {
           key: 'q5_1',
           type: 'checkbox',
-          text: '5.1. Hangi platform aracılığı ile robot çalıştırdınız? ',
+          text: 'Hangi platform aracılığı ile robot çalıştırdınız? ',
           options: [
             '3Commas',
             'Matrix',
@@ -205,7 +223,7 @@ export default function SurveyPage() {
     {
       key: 'q6',
       type: 'radio',
-      text: '6. Bot kiralama, strateji satın alma veya satabilme imkanınızın olduğu bir website olsa ilgilenir misiniz?',
+      text: 'Bot kiralama, strateji satın alma veya satabilme imkanınızın olduğu bir website olsa ilgilenir misiniz?',
       options: [
         'Evet, ilgilenirim',
         'Düşünürüm, ama güvenemem',
@@ -215,7 +233,7 @@ export default function SurveyPage() {
     {
       key: 'q7',
       type: 'radio',
-      text: '7. Kendi al-sat stratejinizi başkalarıyla paylaşır mısınız?',
+      text: 'Kendi al-sat stratejinizi başkalarıyla paylaşır mısınız?',
       options: [
         'Ücretli',
         'Ücretsiz',
@@ -226,7 +244,7 @@ export default function SurveyPage() {
     {
       key: 'q8',
       type: 'radio',
-      text: '8. Başkalarının stratejilerini kullanmayı düşünür müsünüz?',
+      text: 'Başkalarının stratejilerini kullanmayı düşünür müsünüz?',
       options: [
         'Evet, düşünürüm',
         'Geçmiş performansını yeterince test ettikten sonra düşünebilirim',
@@ -236,7 +254,7 @@ export default function SurveyPage() {
     {
       key: 'q9',
       type: 'radio',
-      text: '9. Bir stratejinin güvenilirliğini değerlendirmek isteseniz en çok neye dikkat edersiniz?',
+      text: 'Bir stratejinin güvenilirliğini değerlendirmek isteseniz en çok neye dikkat edersiniz?',
       options: [
         'Kazandığı işlemlerin oranı',
         'Risk ve kazanç dengesi',
@@ -250,7 +268,7 @@ export default function SurveyPage() {
     {
       key: 'q10',
       type: 'radio',
-      text: '10. Platformumuzun erken sürüm testlerinde yer almak ister misiniz?',
+      text: 'Platformumuzun erken sürüm testlerinde yer almak ister misiniz?',
       options: ['Evet', 'Hayır'],
       subQuestions: [
         {
@@ -297,22 +315,22 @@ export default function SurveyPage() {
     {
       key: 'q11',
       type: 'textarea',
-      text: '11. Platformumuzdan beklentileriniz nelerdir?',
+      text: 'Platformumuzdan beklentileriniz nelerdir?',
     },
     {
       key: 'q12',
       type: 'textarea',
-      text: '12. Hangi özellik sizi en çok heyecanlandırır?',
+      text: 'Hangi özellik sizi en çok heyecanlandırır?',
     },
     {
       key: 'q13',
       type: 'textarea',
-      text: '13. Önerileriniz varsa yazınız.',
+      text: 'Önerileriniz varsa yazınız.',
     },
     {
       key: 'q14',
       type: 'checkbox',
-      text: '14. Aşağıdakilerden en çok endişeniz olanlar hangileri?',
+      text: 'Aşağıdakilerden en çok endişeniz olanlar hangileri?',
       options: [
         'Stratejilerimin izinsiz kopyalanması',
         'Botların doğru çalışmaması / zarara uğratması',
@@ -587,69 +605,11 @@ export default function SurveyPage() {
                 <div key={sub.key} className="mb-8 space-y-6">
                   <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{sub.text}</p>
                   
-                  {/* Checkbox */}
-                  {sub.type === 'checkbox' && (
-                    <div className="space-y-3">
-                      {sub.options.map((opt) => (
-                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
-                          isDarkMode 
-                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
-                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
-                        }`}>
-                          <input
-                            type="checkbox"
-                            name={sub.key}
-                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                            checked={answers[sub.key]?.includes(opt) || false}
-                            onChange={(e) => {
-                              const currentAnswers = answers[sub.key] || [];
-                              if (e.target.checked) {
-                                if (sub.maxSelections && currentAnswers.length >= sub.maxSelections) {
-                                  setError(`En fazla ${sub.maxSelections} seçim yapabilirsiniz.`);
-                                  return;
-                                }
-                                handleChange(sub.key, [...currentAnswers, opt]);
-                              } else {
-                                handleChange(
-                                  sub.key,
-                                  currentAnswers.filter((item) => item !== opt)
-                                );
-                              }
-                            }}
-                          />
-                          <span className="ml-3">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Radio */}
-                  {sub.type === 'radio' && (
-                    <div className="space-y-3">
-                      {sub.options.map((opt) => (
-                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
-                          isDarkMode 
-                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
-                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
-                        }`}>
-                          <input
-                            type="radio"
-                            name={sub.key}
-                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                            checked={answers[sub.key] === opt}
-                            onChange={() => handleChange(sub.key, opt)}
-                          />
-                          <span className="ml-3">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
                   {/* Input (email, phone) */}
                   {sub.type === 'input' && (
                     <input
-                      type="email"
-                      placeholder={sub.text}
+                      type={sub.key === 'q10_1' ? 'email' : 'text'}
+                      placeholder={sub.key === 'q1_1' ? '' : sub.text}
                       className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
                         isDarkMode 
                           ? 'bg-gray-800 text-gray-100 border-gray-700' 
@@ -695,12 +655,70 @@ export default function SurveyPage() {
                         onChange={(e) => {
                           const phoneNumber = e.target.value;
                           if (phoneNumber === '' || /^\d+$/.test(phoneNumber)) {
-                            const countryCode = (answers[`${sub.key}_countryCode`] || '+90').replace('+', '');
+                            const countryCode = answers[`${sub.key}_countryCode`] || '+90';
                             handleChange(`${sub.key}_number`, phoneNumber);
                             handleChange(sub.key, `${countryCode}${phoneNumber}`);
                           }
                         }}
                       />
+                    </div>
+                  )}
+
+                  {/* Radio */}
+                  {sub.type === 'radio' && (
+                    <div className="space-y-3">
+                      {sub.options.map((opt) => (
+                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                        }`}>
+                          <input
+                            type="radio"
+                            name={sub.key}
+                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                            checked={answers[sub.key] === opt}
+                            onChange={() => handleChange(sub.key, opt)}
+                          />
+                          <span className="ml-3">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Checkbox */}
+                  {sub.type === 'checkbox' && (
+                    <div className="space-y-3">
+                      {sub.options.map((opt) => (
+                        <label key={opt} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' 
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            name={sub.key}
+                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                            checked={answers[sub.key]?.includes(opt) || false}
+                            onChange={(e) => {
+                              const currentAnswers = answers[sub.key] || [];
+                              if (e.target.checked) {
+                                if (sub.maxSelections && currentAnswers.length >= sub.maxSelections) {
+                                  setError(`En fazla ${sub.maxSelections} seçim yapabilirsiniz.`);
+                                  return;
+                                }
+                                handleChange(sub.key, [...currentAnswers, opt]);
+                              } else {
+                                handleChange(
+                                  sub.key,
+                                  currentAnswers.filter((item) => item !== opt)
+                                );
+                              }
+                            }}
+                          />
+                          <span className="ml-3">{opt}</span>
+                        </label>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -729,6 +747,7 @@ export default function SurveyPage() {
                     if (validateCurrentQuestion()) {
                       setIsSubmitting(true);
                       try {
+                        console.log(answers)
                         const res = await fetch('/api/save', {
                           method: 'POST',
                           headers: {

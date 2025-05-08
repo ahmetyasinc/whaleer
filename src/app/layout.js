@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Whaleer",
-  description: "Whaleer platformu için kullanıcı anketi",
+  description: "Whaleer platformu",
   icons: {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "Whaleer Kullanıcı Anketi",
-    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu için kullanıcı anketi",
+    title: "Whaleer",
+    description: "Algoritmik alım-satım dünyasında strateji geliştirme, test etme ve paylaşma platformu",
     url: "https://whaleer.com",
     siteName: "Whaleer",
     images: [
